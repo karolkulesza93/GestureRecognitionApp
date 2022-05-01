@@ -29,3 +29,6 @@ class Logger:
     @staticmethod
     def detection(text):
         print(Logger.DETECTION + Logger._date() + ' [DETECTION] ' + text + Logger.DEFAULT)
+
+if __name__ == '__main__':
+    main()

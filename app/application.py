@@ -31,8 +31,12 @@ class Application():
                 results = self._hands.process(imgRGB)
 
                 if results.multi_hand_landmarks:
+                    if len(results.multi_hand_landmarks) == 2:
+                        self._detector.detectTwoHandedGestures(handLms, img)
                     for handLms in results.multi_hand_landmarks:
-                        self._mpDraw.draw_landmarks(img, handLms, self._mpHands.HAND_CONNECTIONS)
+                        self._mpDraw.draw_landmarks(img, handLms, self._mpHands.HAND_CONNECTIONS, 
+                        self._mpDraw.DrawingSpec(color=(0,0,255)),
+                        self._mpDraw.DrawingSpec(color=(0,255,0)))
                         self._detector.detectOneHandedGestures(handLms, img)
 
                 cv2.imshow("Hands", img)
@@ -43,3 +47,6 @@ class Application():
                     break;
             except BaseException as ex:
                 Logger.error(str(ex))
+
+if __name__ == '__main__':
+    main()
