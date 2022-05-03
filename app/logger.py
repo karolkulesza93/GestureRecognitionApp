@@ -8,7 +8,7 @@ class Logger:
     DETECTION = '\033[94m'
     
     def _date():
-        return datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        return datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
     @staticmethod
     def message(text):
