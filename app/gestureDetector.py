@@ -6,6 +6,7 @@ from logger import Logger
 class GestureDetector():
     def __init__(self):
         self._consoleLog = False
+        self._touchingLenght = 20
 
     def detectOneHandedGestures(self, hand, img):
         screenLogs = []
@@ -13,7 +14,10 @@ class GestureDetector():
         fingers = self.fingerCount(hand, img)
         screenLogs.append(f"Fingers: {fingers}")
         
-        if self.openHand(hand, img):
+        # length = self.scale(hand, img)
+        # screenLogs.append("Lenght: {:.2f}%".format(length))
+        
+        if self.openedHand(hand, img):
             self._log("OPEN")
             screenLogs.append("OPEN")
         elif self.closedHand(hand, img):
@@ -40,6 +44,9 @@ class GestureDetector():
         elif self.phone(hand, img):
             self._log("PHONE")
             screenLogs.append("PHONE")
+        elif self.pistol(hand, img):
+            self._log("PISTOL")
+            screenLogs.append("PISTOL")
         
         # if self.thumbsUp(hand, img):
         #     self._log("Thumbs up")
@@ -76,7 +83,14 @@ class GestureDetector():
         
         fingers1 = self.fingerCount(hand1, img)
         fingers2 = self.fingerCount(hand2, img)
-        screenLogs.append(f'Fingers: {fingers1} + {fingers2} = {fingers1 + fingers2}')
+        screenLogs.append(f'Fingers: {fingers2} + {fingers1} = {fingers1 + fingers2}')
+        
+        if self.heartUpward(hand1, hand2, img):
+            self._log("HEART UPWARD")
+            screenLogs.append("HEART UPWARD")
+        elif self.frame(hand1, hand2, img):
+            self._log("FRAME")
+            screenLogs.append("FRAME")
         
         for i in range(len(screenLogs)):
             self._screenLog(screenLogs[i], img, y = 30 + 30 * i)
@@ -145,11 +159,30 @@ class GestureDetector():
         if self.pinky(hand, img): count = count + 1
         return count
 
+    def indexFingerUnitVector(self, hand, img):
+        pos = utils.getPositionsWithId(hand.landmark, img)
+        tip = hnd.INDEX_FINGER_TIP(pos)
+        mid = hnd.INDEX_FINGER_DIP(pos)
+        l = utils.length(tip, mid)
+        return ((tip[1] - mid[1])/l, (tip[2] - mid[2])/l)
+    
+    def scale(self, hand, img):
+        pos = utils.getPositionsWithId(hand.landmark, img)
+        thumbTip = hnd.THUMB_TIP(pos)
+        indexFingerTip = hnd.INDEX_FINGER_TIP(pos)
+        cv2.line(img, indexFingerTip[1:3], thumbTip[1:3], (255,0,0), 3)
+        lmax = 200
+        lmin = 20
+        l = utils.length(thumbTip, indexFingerTip)
+        if l >= lmax: return 100
+        if l <= lmin: return 0
+        return 100*(l-lmin/2)/lmax
+    
 #endregion Fingers
 
 #region Gestures - one hand
 
-    def openHand(self, hand, img):
+    def openedHand(self, hand, img):
         return self.fingerCount(hand, img) == 5
     
     def closedHand(self, hand, img):
@@ -157,28 +190,28 @@ class GestureDetector():
     
     def ok(self, hand, img):
         pos = utils.getPositionsWithId(hand.landmark, img)
-        return (utils.length(hnd.THUMB_TIP(pos), hnd.INDEX_FINGER_TIP(pos)) < 15
+        return (utils.length(hnd.THUMB_TIP(pos), hnd.INDEX_FINGER_TIP(pos)) < self._touchingLenght
             and self.middleFinger(hand, img)
             and self.ringFinger(hand, img)
             and self.pinky(hand, img))
 
     def okMiddleFinger(self, hand, img):
         pos = utils.getPositionsWithId(hand.landmark, img)
-        return (utils.length(hnd.THUMB_TIP(pos), hnd.MIDDLE_FINGER_TIP(pos)) < 15
+        return (utils.length(hnd.THUMB_TIP(pos), hnd.MIDDLE_FINGER_TIP(pos)) < self._touchingLenght
             and self.indexFinger(hand, img)
             and self.ringFinger(hand, img)
             and self.pinky(hand, img))
     
     def okRingFinger(self, hand, img):
         pos = utils.getPositionsWithId(hand.landmark, img)
-        return (utils.length(hnd.THUMB_TIP(pos), hnd.RING_FINGER_TIP(pos)) < 15
+        return (utils.length(hnd.THUMB_TIP(pos), hnd.RING_FINGER_TIP(pos)) < self._touchingLenght
             and self.middleFinger(hand, img)
             and self.indexFinger(hand, img)
             and self.pinky(hand, img))
     
     def okPinky(self, hand, img):
         pos = utils.getPositionsWithId(hand.landmark, img)
-        return (utils.length(hnd.THUMB_TIP(pos), hnd.PINKY_TIP(pos)) < 15
+        return (utils.length(hnd.THUMB_TIP(pos), hnd.PINKY_TIP(pos)) < self._touchingLenght
             and self.middleFinger(hand, img)
             and self.ringFinger(hand, img)
             and self.indexFinger(hand, img))
@@ -204,6 +237,13 @@ class GestureDetector():
             and not self.middleFinger(hand, img)
             and not self.ringFinger(hand, img))
     
+    def pistol(self, hand, img):
+        return (self.indexFinger(hand, img)
+            and self.thumb(hand, img)
+            and not self.middleFinger(hand, img)
+            and not self.ringFinger(hand, img)
+            and not self.pinky(hand, img))
+    
     def thumbsUp(self, hand, img):
         pos = utils.getPositionsWithId(hand.landmark, img)
         return (hnd.THUMB_TIP(pos)[2] < hnd.THUMB_IP(pos)[2]
@@ -228,8 +268,18 @@ class GestureDetector():
 
 #region Gestures - two hands
 
+    def heartUpward(self, hand1, hand2, img):
+        pos1 = utils.getPositionsWithId(hand1.landmark, img)
+        pos2 = utils.getPositionsWithId(hand2.landmark, img)
+        return (utils.length(hnd.THUMB_TIP(pos1), hnd.THUMB_TIP(pos2)) < self._touchingLenght and
+            utils.length(hnd.INDEX_FINGER_TIP(pos1), hnd.INDEX_FINGER_TIP(pos2)) < self._touchingLenght)
     
-
+    def frame(self, hand1, hand2, img):
+        pos1 = utils.getPositionsWithId(hand1.landmark, img)
+        pos2 = utils.getPositionsWithId(hand2.landmark, img)
+        return (utils.length(hnd.THUMB_TIP(pos1), hnd.INDEX_FINGER_TIP(pos2)) < self._touchingLenght and
+            utils.length(hnd.THUMB_TIP(pos2), hnd.INDEX_FINGER_TIP(pos1)) < self._touchingLenght)
+    
 #endregion Gestures - two hands
 
 if __name__ == '__main__':

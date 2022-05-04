@@ -18,5 +18,10 @@ def highlightPoint(img, pos, radius = 15):
 def length(a, b):
     return math.sqrt((a[1] - b[1])**2 + (a[2] - b[2])**2)
 
+def saveImg(img):
+    name = 'Img_' + str(datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3])
+    cv2.imwrite(f'C:/Users/KarolKulesza/Studia/MASTERS DEGREE DATA SCIENCE IN PRACTICE/img/{name}.jpg', img)
+    Logger.message(f'Screenshot saved as {name}.jpg')
+
 if __name__ == '__main__':
     main()
