@@ -1,5 +1,7 @@
 import cv2
 import math
+from datetime import datetime
+from logger import Logger
 
 def getPositionsWithId(landmarks, img):
     positions = []

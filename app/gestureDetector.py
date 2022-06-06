@@ -1,7 +1,6 @@
 import utils
 from handLandmarksHelper import HandLandMarksHelper as hnd
 import cv2
-from logger import Logger
 
 class GestureDetector():
     def __init__(self):
@@ -47,13 +46,6 @@ class GestureDetector():
         elif self.pistol(hand, img):
             self._log("PISTOL")
             screenLogs.append("PISTOL")
-        
-        # if self.thumbsUp(hand, img):
-        #     self._log("Thumbs up")
-        #     screenLogs.append("Thumbs up")
-        # elif self.thumbsDown(hand, img):
-        #     self._log("Thumbs down")
-        #     screenLogs.append("Thumbs down")    
             
         if self.thumb(hand, img, True):
             self._log("Thumb")
@@ -170,13 +162,19 @@ class GestureDetector():
         pos = utils.getPositionsWithId(hand.landmark, img)
         thumbTip = hnd.THUMB_TIP(pos)
         indexFingerTip = hnd.INDEX_FINGER_TIP(pos)
+        mid = ((thumbTip[1] + indexFingerTip[1])/2, (thumbTip[2] + indexFingerTip[2])/2)
         cv2.line(img, indexFingerTip[1:3], thumbTip[1:3], (255,0,0), 3)
         lmax = 200
         lmin = 20
         l = utils.length(thumbTip, indexFingerTip)
-        if l >= lmax: return 100
-        if l <= lmin: return 0
-        return 100*(l-lmin/2)/lmax
+        
+        res = 0
+        if l >= lmax: res = 1
+        elif l <= lmin: res = 0
+        else: res = (l-lmin/2)/lmax
+        text = "{:.2f}%".format(res*100)
+        cv2.putText(img, text, (int(mid[0]), int(mid[1])), cv2.FONT_HERSHEY_DUPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
+        return res        
     
 #endregion Fingers
 
